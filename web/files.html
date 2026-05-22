@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>已处理文件列表-PDF转换器</title>
+    <link rel="icon" type="image/svg+xml" href="/PG/source/pg.svg">
+    <link rel="apple-touch-icon" href="/PG/source/pg.svg">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            border-radius: 10px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header .title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        
+        .back-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .back-btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .refresh-btn {
+            background: #2ecc71;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .refresh-btn:hover {
+            background: #27ae60;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .card-header h2 {
+            color: #2c3e50;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .stats-info {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .stats-info strong {
+            color: #2c3e50;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            border-radius: 8px;
+            border: 1px solid #ecf0f1;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+        
+        th:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        th .sort-icon {
+            margin-left: 5px;
+            font-size: 12px;
+            opacity: 0.5;
+        }
+        
+        th.sort-asc .sort-icon::after {
+            content: '↑';
+        }
+        
+        th.sort-desc .sort-icon::after {
+            content: '↓';
+        }
+        
+        th.active .sort-icon {
+            opacity: 1;
+        }
+        
+        tbody tr {
+            border-bottom: 1px solid #ecf0f1;
+            transition: all 0.3s;
+        }
+        
+        tbody tr:hover {
+            background: #f8f9fa;
+            transform: scale(1.01);
+        }
+        
+        tbody tr:last-child {
+            border-bottom: none;
+        }
+        
+        td {
+            padding: 15px;
+            font-size: 14px;
+            color: #2c3e50;
+        }
+        
+        .file-name {
+            font-weight: 600;
+            color: #3498db;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .file-size {
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            color: #9b59b6;
+        }
+        
+        .time-cell {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #7f8c8d;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .pagination button {
+            background: white;
+            color: #2c3e50;
+            border: 1px solid #bdc3c7;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .pagination button:hover:not(:disabled) {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .pagination button.active {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+        
+        .pagination .page-info {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+            font-size: 16px;
+        }
+        
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+        
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+        }
+        
+        .empty-state .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+        
+        .empty-state h3 {
+            color: #2c3e50;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .per-page-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .per-page-selector select {
+            padding: 8px 12px;
+            border: 1px solid #bdc3c7;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            background: white;
+        }
+        
+        .per-page-selector label {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+                gap: 15px;
+            }
+            
+            .card-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .file-name {
+                max-width: 200px;
+            }
+            
+            th, td {
+                padding: 10px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title">
+                <a href="/PG/pdf2word/admin" class="back-btn">← 返回</a>
+                <h1>📄 已处理文件列表</h1>
+            </div>
+            <button class="refresh-btn" onclick="loadFiles()">🔄 刷新</button>
+        </div>
+        
+        <div id="errorMessage" class="error-message"></div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h2>文件列表</h2>
+                <div class="per-page-selector">
+                    <label>每页显示：</label>
+                    <select id="perPage" onchange="changePerPage()">
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="stats-info" id="statsInfo">
+                共 <strong>0</strong> 条记录
+            </div>
+            
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th onclick="sortFiles('file_name')" id="th-file_name">
+                                文件名 <span class="sort-icon"></span>
+                            </th>
+                            <th onclick="sortFiles('file_size')" id="th-file_size">
+                                文件大小 <span class="sort-icon"></span>
+                            </th>
+                            <th onclick="sortFiles('start_time')" id="th-start_time">
+                                开始时间 <span class="sort-icon"></span>
+                            </th>
+                            <th onclick="sortFiles('end_time')" id="th-end_time">
+                                结束时间 <span class="sort-icon"></span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="filesTableBody">
+                        <tr>
+                            <td colspan="4" class="loading">加载数据中</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="pagination" id="pagination">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let currentPerPage = 20;
+        let currentSortBy = 'start_time';
+        let currentSortOrder = 'desc';
+        let totalFiles = 0;
+        let totalPages = 0;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            loadFiles();
+        });
+        
+        async function loadFiles() {
+            try {
+                const response = await fetch(`/PG/api/files/completed?page=${currentPage}&per_page=${currentPerPage}&sort_by=${currentSortBy}&sort_order=${currentSortOrder}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+                
+                totalFiles = data.total;
+                totalPages = data.total_pages;
+                
+                document.getElementById('statsInfo').innerHTML = `共 <strong>${totalFiles}</strong> 条记录`;
+                
+                renderFilesTable(data.files);
+                renderPagination();
+                updateSortIcons();
+                
+                hideError();
+            } catch (error) {
+                showError('加载数据失败: ' + error.message);
+            }
+        }
+        
+        function renderFilesTable(files) {
+            const tbody = document.getElementById('filesTableBody');
+            
+            if (!files || files.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="empty-state">
+                            <div class="icon">📭</div>
+                            <h3>暂无已处理的文件</h3>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = files.map(file => `
+                <tr>
+                    <td><div class="file-name" title="${file.file_name}">${file.file_name}</div></td>
+                    <td><span class="file-size">${file.file_size}</span></td>
+                    <td><span class="time-cell">${file.start_time}</span></td>
+                    <td><span class="time-cell">${file.end_time}</span></td>
+                </tr>
+            `).join('');
+        }
+        
+        function renderPagination() {
+            const pagination = document.getElementById('pagination');
+            
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+            
+            let html = '';
+            
+            html += `<button onclick="goToPage(1)" ${currentPage === 1 ? 'disabled' : ''}>首页</button>`;
+            html += `<button onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>`;
+            
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+            
+            if (startPage > 1) {
+                html += `<span class="page-info">...</span>`;
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button onclick="goToPage(${i})" ${i === currentPage ? 'class="active"' : ''}>${i}</button>`;
+            }
+            
+            if (endPage < totalPages) {
+                html += `<span class="page-info">...</span>`;
+            }
+            
+            html += `<button onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>`;
+            html += `<button onclick="goToPage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>末页</button>`;
+            
+            html += `<span class="page-info">第 ${currentPage} / ${totalPages} 页</span>`;
+            
+            pagination.innerHTML = html;
+        }
+        
+        function goToPage(page) {
+            if (page < 1 || page > totalPages || page === currentPage) {
+                return;
+            }
+            currentPage = page;
+            loadFiles();
+        }
+        
+        function changePerPage() {
+            currentPerPage = parseInt(document.getElementById('perPage').value);
+            currentPage = 1;
+            loadFiles();
+        }
+        
+        function sortFiles(sortBy) {
+            if (sortBy === currentSortBy) {
+                currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortBy = sortBy;
+                currentSortOrder = 'desc';
+            }
+            currentPage = 1;
+            loadFiles();
+        }
+        
+        function updateSortIcons() {
+            const headers = document.querySelectorAll('th');
+            headers.forEach(header => {
+                header.classList.remove('active', 'sort-asc', 'sort-desc');
+            });
+            
+            const activeHeader = document.getElementById(`th-${currentSortBy}`);
+            if (activeHeader) {
+                activeHeader.classList.add('active', `sort-${currentSortOrder}`);
+            }
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+        
+        function hideError() {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

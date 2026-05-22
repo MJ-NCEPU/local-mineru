@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件转Markdown转换器</title>
+    <link rel="icon" type="image/svg+xml" href="/PG/source/pg.svg">
+    <link rel="apple-touch-icon" href="/PG/source/pg.svg">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1000px;
+            margin: 20px auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 25px;
+            backdrop-filter: blur(10px);
+            box-sizing: border-box;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 28px;
+            font-weight: 600;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background: linear-gradient(to right, #2c3e50, #4a6491);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+            padding: 20px;
+            border-radius: 12px;
+            background: linear-gradient(to right, #f8f9ff, #eef2ff);
+            box-shadow: 0 4px 6px rgba(50, 50, 93, 0.05), 0 1px 3px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-sizing: border-box;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .section-title::before {
+            content: "📄";
+            margin-right: 12px;
+            font-size: 22px;
+        }
+        
+        .input-group {
+            display: block;
+            padding: 10px 0;
+            overflow: hidden;
+        }
+        
+        .file-selection-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .file-selection-item {
+            flex: 1;
+            min-width: calc(50% - 10px);
+            max-width: calc(50% - 10px);
+            box-sizing: border-box;
+        }
+        
+        .btn {
+            background: linear-gradient(to right, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
+        }
+        
+        .btn-run {
+            background: linear-gradient(to right, #2ecc71, #27ae60);
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .btn-run:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
+        }
+        
+        .btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .file-info {
+            margin-top: 10px;
+            padding: 10px;
+            background: #e8f4fc;
+            border-radius: 5px;
+            font-size: 14px;
+            word-break: break-all;
+        }
+        
+        .output-section .section-title::before {
+            content: "📁";
+        }
+        
+        .run-section .section-title::before {
+            content: "⚡";
+        }
+        
+        .custom-file-selector {
+            border: 2px dashed #7a86fb;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            background: linear-gradient(to bottom, #f8faff, #eef1ff);
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+        
+        .custom-file-selector:hover {
+            background: linear-gradient(to bottom, #eef1ff, #e0e4ff);
+            border: 2px dashed #5c67e2;
+            transform: translateY(-3px);
+            box-shadow: 0 7px 14px rgba(122, 134, 251, 0.2);
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .status.running {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            display: block;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            display: block;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            display: block;
+        }
+        
+        .download-btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+        
+        .download-btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .progress-bar {
+            height: 12px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 15px;
+            display: none;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        
+        .progress {
+            height: 100%;
+            background: linear-gradient(to right, #3498db, #2ecc71);
+            width: 0%;
+            transition: width 0.4s ease;
+            border-radius: 10px;
+        }
+        
+        .file-info {
+            margin-top: 25px;
+            padding: 12px;
+            background: linear-gradient(to right, #e8f4fc, #daeaf7);
+            border-radius: 8px;
+            font-size: 14px;
+            word-break: break-all;
+            border-left: 4px solid #3498db;
+            clear: both;
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        /* 隐藏原生文件输入 */
+        .file-input {
+            display: none;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .file-selection-container {
+                flex-direction: column;
+            }
+            
+            .container {
+                width: 95%;
+                padding: 20px;
+            }
+            
+            .section {
+                padding: 18px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PDF-PPTX-XLSX-DOCX-PNG-JPG-JPEG文件转Markdown</h1>
+        
+        <div class="section">
+            <div class="section-title">PDF-PPTX-XLSX-DOCX-PNG-JPG-JPEG文件<svg width="24" height="24" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle; margin-right: 8px;">
+                                <path d="M805.093878 462.367347H219.428571V194.35102C219.428571 150.465306 254.955102 114.938776 298.840816 114.938776h426.840817c43.885714 0 79.412245 35.526531 79.412245 79.412244v268.016327z" fill="#F2CB51"/>
+                                <path d="M725.681633 909.061224H298.840816c-43.885714 0-79.412245-35.526531-79.412245-79.412244v-109.191837h585.665307v109.191837c0 43.885714-36.04898 79.412245-79.412245 79.412244z" fill="#F2CB51"/>
+                                <path d="M829.64898 760.163265H194.35102c-43.885714 0-79.412245-35.526531-79.412244-79.412245V502.073469c0-43.885714 35.526531-79.412245 79.412244-79.412245h635.29796c43.885714 0 79.412245 35.526531 79.412244 79.412245v178.677551c0 43.885714-35.526531 79.412245-79.412244 79.412245z" fill="#E5404F"/>
+                                <path d="M685.97551 359.967347H338.546939c-10.971429 0-19.853061-8.881633-19.853061-19.853061 0-10.971429 8.881633-19.853061 19.853061-19.853062h347.428571c10.971429 0 19.853061 8.881633 19.853061 19.853062 0 10.971429-9.404082 19.853061-19.853061 19.853061z" fill="#AF8015"/>
+                                <path d="M685.97551 257.044898H338.546939c-10.971429 0-19.853061-8.881633-19.853061-19.853061 0-10.971429 8.881633-19.853061 19.853061-19.853061h347.428571c10.971429 0 19.853061 8.881633 19.853061 19.853061 0 10.971429-9.404082 19.853061-19.853061 19.853061z" fill="#AF8015"/>
+                            </svg>或文件夹📂</div>
+            <div class="input-group">
+                <!-- 隐藏的文件输入 -->
+                <input type="file" id="pdfFiles" class="file-input" accept=".pdf,.png,.jpg,.jpeg,.pptx,.xlsx,.docx" multiple>
+                <input type="file" id="pdfFolder" class="file-input" webkitdirectory directory multiple>
+                
+                <div class="file-selection-container">
+                    <div class="file-selection-item">
+                        <div class="custom-file-selector" onclick="document.getElementById('pdfFiles').click()">
+                            <p><svg width="24" height="24" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" style="vertical-align: middle; margin-right: 8px;">
+                                <path d="M805.093878 462.367347H219.428571V194.35102C219.428571 150.465306 254.955102 114.938776 298.840816 114.938776h426.840817c43.885714 0 79.412245 35.526531 79.412245 79.412244v268.016327z" fill="#F2CB51"/>
+                                <path d="M725.681633 909.061224H298.840816c-43.885714 0-79.412245-35.526531-79.412245-79.412244v-109.191837h585.665307v109.191837c0 43.885714-36.04898 79.412245-79.412245 79.412244z" fill="#F2CB51"/>
+                                <path d="M829.64898 760.163265H194.35102c-43.885714 0-79.412245-35.526531-79.412244-79.412245V502.073469c0-43.885714 35.526531-79.412245 79.412244-79.412245h635.29796c43.885714 0 79.412245 35.526531 79.412244 79.412245v178.677551c0 43.885714-35.526531 79.412245-79.412244 79.412245z" fill="#E5404F"/>
+                                <path d="M685.97551 359.967347H338.546939c-10.971429 0-19.853061-8.881633-19.853061-19.853061 0-10.971429 8.881633-19.853061 19.853061-19.853062h347.428571c10.971429 0 19.853061 8.881633 19.853061 19.853062 0 10.971429-9.404082 19.853061-19.853061 19.853061z" fill="#AF8015"/>
+                                <path d="M685.97551 257.044898H338.546939c-10.971429 0-19.853061-8.881633-19.853061-19.853061 0-10.971429 8.881633-19.853061 19.853061-19.853061h347.428571c10.971429 0 19.853061 8.881633 19.853061 19.853061 0 10.971429-9.404082 19.853061-19.853061 19.853061z" fill="#AF8015"/>
+                            </svg>点击选择PDF-PPTX-XLSX-DOCX-PNG-JPG-JPEG文件（支持多选）</p>
+                        </div>
+                    </div>
+                    <div class="file-selection-item">
+                        <div class="custom-file-selector" onclick="document.getElementById('pdfFolder').click()">
+                            <p>📂 点击选择包含PDF-PPTX-XLSX-DOCX-PNG-JPG-JPEG的文件夹</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="fileInfo" class="file-info hidden">
+                    <strong>已选择:</strong> <span id="selectedFilesCount">0</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section run-section">
+            <div class="section-title">执行转换</div>
+            <button class="btn btn-run" onclick="runConversion()" id="runButton" disabled>开始转换</button>
+            
+            <div id="progressContainer" class="progress-bar hidden">
+                <div id="progressBar" class="progress"></div>
+            </div>
+            
+            <div id="statusMessage" class="status"></div>
+        </div>
+
+         <div class="section output-section">
+            <div class="info-text">
+                <p>✅ 转换结果将自动保存到服务器预设目录 | <strong>📁 请在一小时内下载结果文件</strong></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let selectedFiles = null;
+        let selectedFolderFiles = [];
+        
+        // 辅助函数：判断文件是否是支持的类型（PDF或图片）
+        function isSupportedFile(file) {
+            const fileName = file.name.toLowerCase();
+            return fileName.endsWith('.pdf') || 
+                   fileName.endsWith('.png') || 
+                   fileName.endsWith('.jpg') || 
+                   fileName.endsWith('.jpeg') ||
+                   fileName.endsWith('.pptx') ||
+                   fileName.endsWith('.xlsx') ||
+                   fileName.endsWith('.docx');
+        }
+        
+        // 辅助函数：获取文件类型描述
+        function getFileTypeDescription(file) {
+            const fileName = file.name.toLowerCase();
+            if (fileName.endsWith('.pdf')) return 'PDF';
+            if (fileName.endsWith('.png')) return 'PNG';
+            if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) return 'JPG';
+            if (fileName.endsWith('.pptx')) return 'PPTX';
+            if (fileName.endsWith('.xlsx')) return 'XLSX';
+            if (fileName.endsWith('.docx')) return 'DOCX';
+            return '未知';
+        }
+        
+        // 监听文件选择变化
+        document.getElementById('pdfFiles').addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            
+            if (files.length > 0) {
+                // 筛选出支持的文件（PDF和图片）
+                const supportedFiles = files.filter(file => isSupportedFile(file));
+                const otherFiles = files.filter(file => !isSupportedFile(file));
+                
+                if (otherFiles.length > 0) {
+                    // 如果有不支持的文件，显示警告但只处理支持的文件
+                    alert(`检测到 ${otherFiles.length} 个不支持的文件，将仅处理 ${supportedFiles.length} 个PDF/图片文件`);
+                }
+                
+                if (supportedFiles.length === 0) {
+                    alert('没有选择有效的PDF-PPTX-XLSX-DOCX-PNG-JPG-JPEG文件！');
+                    this.value = ''; // 清空选择
+                    return;
+                }
+                
+                selectedFiles = supportedFiles;
+                selectedFolderFiles = []; // 清除文件夹选择
+                
+                // 更新显示信息
+                const supportedFileNames = supportedFiles.map(file => file.name);
+                let fileInfoText = `${supportedFiles.length} 个文件`;
+                
+                if (supportedFiles.length <= 5) {
+                    // 如果文件不超过5个，显示所有文件名
+                    fileInfoText += ` (${supportedFileNames.join(', ')})`;
+                } else {
+                    // 如果超过5个，只显示前3个和省略号
+                    fileInfoText += ` (${supportedFileNames.slice(0, 3).join(', ')}等)`;
+                }
+                
+                if (otherFiles.length > 0) {
+                    fileInfoText += ` (检测到${otherFiles.length}个不支持的文件，将仅处理PDF-PPTX-XLSX-DOCX-PNG-JPG-JPEG文件)`;
+                }
+                
+                document.getElementById('selectedFilesCount').textContent = fileInfoText;
+                document.getElementById('fileInfo').classList.remove('hidden');
+                
+                updateRunButton();
+            } else {
+                document.getElementById('fileInfo').classList.add('hidden');
+                selectedFiles = null;
+                updateRunButton();
+            }
+        });
+
+        // 监听文件夹选择变化
+        document.getElementById('pdfFolder').addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            
+            if (files.length > 0) {
+                // 筛选出支持的文件（PDF和图片）
+                const supportedFiles = files.filter(file => isSupportedFile(file));
+                const otherFiles = files.filter(file => !isSupportedFile(file));
+                
+                if (otherFiles.length > 0) {
+                    // 如果有不支持的文件，显示警告但只处理支持的文件
+                    alert(`检测到 ${otherFiles.length} 个不支持的文件，将仅处理 ${supportedFiles.length} 个PDF-PPTX-XLSX-DOCX-PNG-JPG-JPEG文件`);
+                }
+                
+                if (supportedFiles.length === 0) {
+                    alert('文件夹中没有找到有效的PDF-PPTX-XLSX-DOCX-PNG-JPG-JPEG文件！');
+                    this.value = ''; // 清空选择
+                    return;
+                }
+                
+                selectedFolderFiles = supportedFiles;  // 保存文件夹中的支持文件列表
+                selectedFiles = null; // 清除文件选择
+                
+                // 更新显示信息
+                const supportedFileNames = supportedFiles.map(file => file.name);
+                let fileInfoText = `${supportedFiles.length} 个文件`;
+                
+                if (supportedFiles.length <= 5) {
+                    // 如果文件不超过5个，显示所有文件名
+                    fileInfoText += ` (${supportedFileNames.join(', ')})`;
+                } else {
+                    // 如果超过5个，只显示前3个和省略号
+                    fileInfoText += ` (${supportedFileNames.slice(0, 3).join(', ')}等)`;
+                }
+                
+                if (otherFiles.length > 0) {
+                    fileInfoText += ` (检测到${otherFiles.length}个不支持的文件，将仅处理PDF-PPTX-XLSX-DOCX-PNG-JPG-JPEG文件)`;
+                }
+                
+                document.getElementById('selectedFilesCount').textContent = fileInfoText;
+                document.getElementById('fileInfo').classList.remove('hidden');
+                
+                updateRunButton();
+            } else {
+                document.getElementById('fileInfo').classList.add('hidden');
+                selectedFolderFiles = [];
+                updateRunButton();
+            }
+        });
+
+        // 更新运行按钮状态
+        function updateRunButton() {
+            const runButton = document.getElementById('runButton');
+            runButton.disabled = !(selectedFiles || (selectedFolderFiles && selectedFolderFiles.length > 0));
+        }
+        
+        // 页面加载完成后更新按钮状态
+        window.addEventListener('load', function() {
+            updateRunButton();
+        });
+
+        // 运行转换
+        async function runConversion() {
+            // 检查是否选择了输入文件/文件夹
+            if (!(selectedFiles || (selectedFolderFiles && selectedFolderFiles.length > 0))) {
+                alert('请先选择输入文件或文件夹！');
+                return;
+            }
+            
+            // 显示运行状态
+            showStatus('文件处理任务已提交，正在后台处理中', 'running');
+            document.getElementById('progressContainer').classList.remove('hidden');
+            document.getElementById('runButton').disabled = true;
+            
+            try {
+                const formData = new FormData();
+                
+                // 根据输入类型添加数据
+                if (selectedFiles) {
+                    // 文件上传模式
+                    formData.append('inputType', 'files');
+                    for (let i = 0; i < selectedFiles.length; i++) {
+                        formData.append('files', selectedFiles[i]);
+                    }
+                } else if (selectedFolderFiles && selectedFolderFiles.length > 0) {
+                    // 文件夹上传模式
+                    formData.append('inputType', 'folder');
+                    for (const file of selectedFolderFiles) {
+                        formData.append('files', file);
+                    }
+                }
+                
+                // 不再需要输出路径，后端将使用预设路径
+                // 发送请求到后端
+                const response = await fetch('/PG/convert', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // 获取任务ID并开始轮询状态
+                    const taskId = result.task_id;
+                    if (taskId) {
+                        // 传递固定提示信息，因为输出路径由后端决定
+                        await pollTaskStatus(taskId);
+                    } else {
+                        showStatus(`文档已处理完成，保存至服务器预设目录`, 'success');
+                        document.getElementById('progressBar').style.width = '100%';
+                    }
+                } else {
+                    showStatus(`转换失败: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('转换过程中出错:', error);
+                showStatus(`转换出错: ${error.message}`, 'error');
+            } finally {
+                document.getElementById('runButton').disabled = false;
+            }
+        }
+
+        // 轮询任务状态
+        async function pollTaskStatus(taskId) {
+            const maxAttempts = 2400; // 最大尝试次数 (600 * 1秒 = 10分钟)
+            let attempts = 0;
+
+            while (attempts < maxAttempts) {
+                try {
+                    const response = await fetch(`/PG/task_status/${taskId}`);
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        showStatus(`获取任务状态失败: ${data.error || '未知错误'}`, 'error');
+                        return;
+                    }
+
+                    const taskStatus = data.task_status;
+                    
+                    // 更新进度条
+                    const progressBar = document.getElementById('progressBar');
+                    if (taskStatus === 'PENDING') {
+                        progressBar.style.width = '20%';
+                        showStatus('任务排队中...', 'running');
+                    } else if (taskStatus === 'PROGRESS') {
+                        progressBar.style.width = '50%';
+                        showStatus('任务进行中...', 'running');
+                    } else if (taskStatus === 'STARTED') {
+                        progressBar.style.width = '70%';
+                        showStatus('正在处理中...', 'running');
+                    } else if (taskStatus === 'SUCCESS') {
+                        progressBar.style.width = '100%';
+                        
+                        // 显示完成信息和下载按钮
+                        const downloadUrl = `/PG/download_all/${taskId}`;
+                        const downloadButton = `<br><div style="margin-top: 15px;"><a href="${downloadUrl}" id="downloadBtn" class="download-btn" target="_blank" onclick="setTimeout(() => window.location.reload(), 1000)">📥 下载转换结果 (ZIP格式)</a></div>`;
+                        
+                        showStatus(`文档已处理完成，保存至服务器指定目录${downloadButton}`, 'success');
+                        return; // 任务完成，退出轮询
+                    } else if (taskStatus === 'FAILURE') {
+                        showStatus(`任务失败: ${data.task_result || '处理过程中出现错误'}`, 'error');
+                        return; // 任务失败，退出轮询
+                    }
+
+                    // 等待1秒再查询
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    attempts++;
+                } catch (error) {
+                    console.error('轮询任务状态时出错:', error);
+                    showStatus(`轮询任务状态出错: ${error.message}`, 'error');
+                    return;
+                }
+            }
+
+            // 超时
+            showStatus('任务超时，请稍后重试', 'error');
+        }
+
+        // 显示状态消息
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.innerHTML = message;  // 使用innerHTML来渲染HTML内容
+            statusDiv.className = `status ${type}`;
+            
+            // 重置进度条
+            if (type === 'running') {
+                document.getElementById('progressBar').style.width = '0%';
+            }
+        }
+    </script>
+</body>
+</html>
